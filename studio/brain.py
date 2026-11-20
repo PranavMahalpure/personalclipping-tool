@@ -217,24 +217,74 @@ def retry_wait(e, attempt, timeout=None):
 
 
 def ask_ai(prompt, schema=None, purpose="AI call", timeout=None):
-    """Try each model in order, with retries for rate limits and overloads (see retry_wait).
-    Returns (the answer, the model that gave it, tokens used) and notes the tokens in the usage record."""
+    """Try models and keys with instant model switching on limits/timeouts,
+    and automatic failover to alternative API keys when token/quota exhaustion is encountered."""
     if not config.ai_ready():
         raise RuntimeError("The AI is not set up on this server.")
+    
+    available_keys = ai.keys()
+    if not available_keys:
+        available_keys = [ai.key()]
+    curr_k_idx = ai.active_key_index()
+    key_indices = [(curr_k_idx + i) % len(available_keys) for i in range(len(available_keys))]
+
+    available_models = ai.models()
+    if not available_models:
+        available_models = list(config.DEFAULT_TOP_15_MODELS)
+    curr_active_m = ai.active_model()
+    if curr_active_m in available_models:
+        idx = available_models.index(curr_active_m)
+        model_order = available_models[idx:] + available_models[:idx]
+    else:
+        model_order = list(available_models)
+
     last = None
-    for model in ai.models():
-        for attempt in range(TRIES):
-            try:
-                out, sent, wrote = ai.call(model, prompt, schema or SCHEMA, timeout)
-                usage.record(sent, wrote, purpose)
-                ai.clear_problem()
-                return out, model, sent + wrote
-            except Exception as e:  # noqa: BLE001
-                last = e
-                wait = retry_wait(e, attempt, timeout)
-                if wait is None:
-                    break
-                time.sleep(wait)
+
+    for k_idx in key_indices:
+        current_k = available_keys[k_idx]
+        ai.set_active_key_index(k_idx)
+
+        for model in model_order:
+            max_tries = 3 if len(model_order) == 1 else 1
+            for attempt in range(max_tries):
+                try:
+                    try:
+                        out, sent, wrote = ai.call(model, prompt, schema or SCHEMA, timeout, use_key=current_k)
+                    except TypeError as te:
+                        if "use_key" in str(te):
+                            out, sent, wrote = ai.call(model, prompt, schema or SCHEMA, timeout)
+                        else:
+                            raise
+                    usage.record(sent, wrote, purpose)
+                    ai.clear_problem()
+                    ai.set_active_model(model)
+                    ai.set_active_key_index(k_idx)
+                    return out, model, sent + wrote
+                except Exception as e:  # noqa: BLE001
+                    last = e
+                    if len(model_order) > 1:
+                        if ai.is_limit_error(e):
+                            print(f"  [PeakCut Instant Switch] Model '{model}' hit limit ({str(e)[:75]}). Instantly switching to next model...", flush=True)
+                            break
+                        elif timeout or "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                            print(f"  [PeakCut Instant Switch] Model '{model}' timed out. Instantly trying next model...", flush=True)
+                            break
+                        else:
+                            print(f"  [PeakCut Instant Switch] Model '{model}' error: {str(e)[:75]}. Trying next model...", flush=True)
+                            break
+                    else:
+                        wait = retry_wait(e, attempt)
+                        if wait is not None and attempt < max_tries - 1:
+                            time.sleep(wait)
+                            continue
+                        break
+
+        # If all models on this key failed or if key quota exhausted, switch key!
+        if len(available_keys) > 1 and k_idx != key_indices[-1]:
+            next_k_idx = key_indices[key_indices.index(k_idx) + 1]
+            print(f"  [PeakCut Instant Switch] Key #{k_idx + 1} limit/exhaustion encountered across models. Instantly switching to Key #{next_k_idx + 1}!", flush=True)
+            ai.set_active_key_index(next_k_idx)
+
     ai.note_problem(last)
     raise RuntimeError(f"The AI did not answer: {ai.explain(last) or last}")
 
@@ -458,9 +508,27 @@ def look_for_facecam(jpeg: bytes, timeout=None) -> dict:
     Returns {"looked": whether the model understood the question at all, "box": (x, y, w, h) as parts of
     the frame, or None}. A model that only reads text, or a service that refuses pictures, leaves "looked"
     False, and the caller falls back to the borders it can measure itself."""
-    try:
-        text, sent, wrote = ai.see(FACE_CAM, jpeg, timeout)
-    except Exception:  # noqa: BLE001 - no picture is not a failure, the local search still runs
+    available_keys = ai.keys() or [ai.key()]
+    curr_k_idx = ai.active_key_index()
+    key_indices = [(curr_k_idx + i) % len(available_keys) for i in range(len(available_keys))]
+    text = ""
+    sent = 0
+    wrote = 0
+    for k_idx in key_indices:
+        current_k = available_keys[k_idx]
+        try:
+            try:
+                text, sent, wrote = ai.see(FACE_CAM, jpeg, timeout, use_key=current_k)
+            except TypeError as te:
+                if "use_key" in str(te):
+                    text, sent, wrote = ai.see(FACE_CAM, jpeg, timeout)
+                else:
+                    raise
+            ai.set_active_key_index(k_idx)
+            break
+        except Exception:
+            continue
+    if not text and not sent:
         return {"looked": False, "box": None}
     if sent or wrote:
         usage.record(sent, wrote, "Webcam: one frame")

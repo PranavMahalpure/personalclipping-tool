@@ -205,14 +205,52 @@ ALLOWED_SITES = tuple(s.strip().lower() for s in env(
     "PEAKCUT_ALLOWED_SITES", "youtube.com,youtu.be,twitch.tv,kick.com").split(",") if s.strip())
 
 # ---------------------------------------------------------------- AI (bring your own key: see studio/ai.py)
-# These are the starting values. Whatever is saved from the dashboard (Settings, AI) is used instead.
+# Top 15 models optimized for clipping by token capacity, RPM, and RPD
+DEFAULT_TOP_15_MODELS = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash",
+    "gemini-flash-latest",
+    "gemini-4-hydrogen",
+    "gemma-4-26b-a4b-it",
+    "gemma-4-31b-it",
+    "gemini-robotics-er-2-preview",
+    "gemini-3.5-transcribe",
+    "antigravity-preview-latest",
+]
+
+DEFAULT_KEYS = [k.strip() for k in env("PEAKCUT_AI_KEYS", "").split(",") if k.strip()]
+
 AI_PROVIDER = env("PEAKCUT_AI_PROVIDER", "gemini").strip().lower()            # gemini, openai, xai, groq, openrouter, anthropic, ollama, custom
-AI_MODELS = [m.strip() for m in env("PEAKCUT_AI_MODELS", "").split(",") if m.strip()]   # tried in this order
+_env_models = [m.strip() for m in env("PEAKCUT_AI_MODELS", "").split(",") if m.strip()]
+AI_MODELS = _env_models if _env_models else list(DEFAULT_TOP_15_MODELS)        # tried in this order
 AI_BASE_URL = env("PEAKCUT_AI_BASE_URL", "").rstrip("/")                      # only for "custom", or to override a provider's address
 
 
+def ai_keys() -> list[str]:
+    if "PEAKCUT_AI_KEY" in os.environ and not os.environ["PEAKCUT_AI_KEY"].strip():
+        return []
+    raw = env("PEAKCUT_AI_KEYS", "")
+    if raw:
+        ks = [k.strip() for k in raw.split(",") if k.strip()]
+        if ks:
+            return ks
+    single = _secret("PEAKCUT_AI_KEY", "PEAKCUT_AI_KEY_FILE", r"\S{8,}")
+    if single:
+        ks = [k.strip() for k in single.split(",") if k.strip()]
+        if ks:
+            return ks
+    return list(DEFAULT_KEYS)
+
+
 def ai_key() -> str:
-    return _secret("PEAKCUT_AI_KEY", "PEAKCUT_AI_KEY_FILE", r"\S{8,}")
+    ks = ai_keys()
+    return ks[0] if ks else ""
 
 
 def ai_ready() -> bool:

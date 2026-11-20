@@ -60,11 +60,36 @@ def brief() -> dict:
     with db.engine.connect() as c:
         today = c.execute(sa.select(sa.func.count(), sa.func.coalesce(sa.func.sum(_tokens()), 0)).where(
             u.user_id == uid, u.t >= midnight)).first()
-    out = {"ready": ai.ready(), "provider": ai.label(), "model": (ai.models() or [""])[0],
+    ks = ai.keys()
+    idx = ai.active_key_index()
+    curr_k = ks[idx] if ks else ""
+    out = {"ready": ai.ready(), "provider": ai.label(), "model": ai.active_model(),
+           "active_key_index": idx,
+           "active_key_hint": curr_k[-4:] if len(curr_k) >= 12 else "",
+           "keys_count": len(ks),
+           "keys_info": [
+               {
+                   "index": i,
+                   "hint": k[-4:] if len(k) >= 12 else (k[:4] if k else ""),
+                   "full_preview": (k[:7] + "..." + k[-4:]) if len(k) >= 16 else ("Key " + str(i + 1)),
+                   "active": i == idx
+               }
+               for i, k in enumerate(ks)
+           ],
+           "models": ai.current().get("models", []),
+           "top_models": ai.TOP_15_MODELS,
            "today_calls": int(today[0]), "today_tokens": int(today[1]),
            "problem": ai.problem["text"] if ai.problem["text"] and now - ai.problem["at"] < 6 * 3600 else ""}
     _brief[uid] = (now, out)
     return dict(out)
+
+
+def clear_brief(uid: str = None) -> None:
+    """Invalidate brief cache for instant updates."""
+    if uid:
+        _brief.pop(uid, None)
+    else:
+        _brief.clear()
 
 
 def summary(creator_names: dict) -> dict:

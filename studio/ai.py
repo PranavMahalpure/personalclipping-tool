@@ -23,7 +23,7 @@ from . import config
 
 # name -> (label shown on the pages, address, how it is spoken to, where to get a key, an example model id)
 PROVIDERS = {
-    "gemini": ("Gemini", "https://generativelanguage.googleapis.com/v1beta/models", "gemini", "https://aistudio.google.com/apikey", "gemini-2.5-flash"),
+    "gemini": ("Gemini", "https://generativelanguage.googleapis.com/v1beta/models", "gemini", "https://aistudio.google.com/apikey", "gemini-3.1-flash-lite"),
     "openai": ("OpenAI", "https://api.openai.com/v1", "openai", "https://platform.openai.com/api-keys", "gpt-4o-mini"),
     "xai": ("Grok", "https://api.x.ai/v1", "openai", "https://console.x.ai", "grok-4"),
     "groq": ("Groq", "https://api.groq.com/openai/v1", "openai", "https://console.groq.com/keys", "llama-3.3-70b-versatile"),
@@ -35,9 +35,151 @@ PROVIDERS = {
 ALIASES = {"google": "gemini", "grok": "xai", "claude": "anthropic", "local": "ollama"}
 NO_KEY = {"ollama", "custom"}       # a model running on your own machine needs no key
 
+TOP_15_MODELS = [
+    {
+        "id": "gemini-3.1-flash-lite",
+        "name": "Gemini 3.1 Flash Lite",
+        "rpm": 15,
+        "tpm": "250K",
+        "rpd": 500,
+        "tokens": "1,048,576",
+        "desc": "Top choice: 500 RPD daily limit, 15 RPM, and 1M token context window."
+    },
+    {
+        "id": "gemini-3.5-flash-lite",
+        "name": "Gemini 3.5 Flash Lite",
+        "rpm": 15,
+        "tpm": "250K",
+        "rpd": 500,
+        "tokens": "1,048,576",
+        "desc": "500 RPD daily allowance, 15 RPM, high speed with 1M tokens."
+    },
+    {
+        "id": "gemini-flash-lite-latest",
+        "name": "Gemini Flash Lite (Latest)",
+        "rpm": 15,
+        "tpm": "250K",
+        "rpd": 500,
+        "tokens": "1,048,576",
+        "desc": "Auto-updated Flash Lite tier alias for maximal daily clipping."
+    },
+    {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Cutting-edge text & video reasoning with 1M context."
+    },
+    {
+        "id": "gemini-3.6-flash",
+        "name": "Gemini 3.6 Flash",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "High quality viral moment detector with 1M tokens."
+    },
+    {
+        "id": "gemini-3.5-flash",
+        "name": "Gemini 3.5 Flash",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Balanced reasoning and structured JSON clip generation."
+    },
+    {
+        "id": "gemini-3-flash-preview",
+        "name": "Gemini 3 Flash Preview",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Fast generation with validated schema support."
+    },
+    {
+        "id": "gemini-2.5-flash",
+        "name": "Gemini 2.5 Flash",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Proven high-reliability clipping model."
+    },
+    {
+        "id": "gemini-flash-latest",
+        "name": "Gemini Flash (Latest)",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Canonical alias for the latest production Flash model."
+    },
+    {
+        "id": "gemini-4-hydrogen",
+        "name": "Gemini 4 Hydrogen",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "1,048,576",
+        "desc": "Advanced next-gen model with 1M context."
+    },
+    {
+        "id": "gemma-4-26b-a4b-it",
+        "name": "Gemma 4 26B (a4b)",
+        "rpm": 30,
+        "tpm": "16K",
+        "rpd": 14400,
+        "tokens": "262,144",
+        "desc": "Massive 14,400 RPD daily quota! 30 RPM, 262K tokens."
+    },
+    {
+        "id": "gemma-4-31b-it",
+        "name": "Gemma 4 31B",
+        "rpm": 30,
+        "tpm": "16K",
+        "rpd": 14400,
+        "tokens": "262,144",
+        "desc": "Massive 14,400 RPD daily quota! 30 RPM, 262K tokens."
+    },
+    {
+        "id": "gemini-robotics-er-2-preview",
+        "name": "Gemini Robotics ER 2 Preview",
+        "rpm": 5,
+        "tpm": "250K",
+        "rpd": 20,
+        "tokens": "131,072",
+        "desc": "Specialized event recognition model with 131K tokens."
+    },
+    {
+        "id": "gemini-3.5-transcribe",
+        "name": "Gemini 3.5 Transcribe",
+        "rpm": 3,
+        "tpm": "10K",
+        "rpd": 25,
+        "tokens": "98,304",
+        "desc": "Audio and transcript alignment specialist."
+    },
+    {
+        "id": "antigravity-preview-latest",
+        "name": "Antigravity Preview Latest",
+        "rpm": 60,
+        "tpm": "100K",
+        "rpd": 100,
+        "tokens": "1,048,576",
+        "desc": "60 RPM, 100 RPD, 100K TPM with 1M token context."
+    }
+]
+
 # ---------------------------------------------------------------- the settings in use
 _lock = threading.Lock()
 _saved = {"at": None, "data": {}}
+_runtime = {
+    "active_key_index": 0,
+    "active_model": None,
+}
 
 
 def _file():
@@ -60,26 +202,147 @@ def _from_dashboard() -> dict:
     return _saved["data"]
 
 
+def keys() -> list:
+    """All configured keys, starting with dashboard keys, or .env keys, or defaults."""
+    d = _from_dashboard()
+    if d.get("keys") and isinstance(d["keys"], list):
+        ks = [str(x).strip() for x in d["keys"] if str(x).strip()]
+        if ks:
+            return ks
+    if d.get("key"):
+        raw = str(d["key"]).strip()
+        ks = [k.strip() for k in re.split(r"[\r\n,]+", raw) if k.strip()]
+        if ks:
+            return ks
+    return config.ai_keys()
+
+
+def active_key_index() -> int:
+    d = _from_dashboard()
+    saved_idx = d.get("active_key_index")
+    if saved_idx is not None and isinstance(saved_idx, int):
+        idx = saved_idx
+    else:
+        idx = _runtime["active_key_index"]
+    ks = keys()
+    if not ks:
+        return 0
+    return max(0, min(idx, len(ks) - 1))
+
+
+def set_active_key_index(idx: int) -> int:
+    ks = keys()
+    if not ks:
+        return 0
+    idx = max(0, min(idx, len(ks) - 1))
+    _runtime["active_key_index"] = idx
+    f = _file()
+    if f.exists():
+        try:
+            with _lock:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    data["active_key_index"] = idx
+                    data["key"] = ks[idx]
+                    f.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                    _saved["at"] = None
+        except Exception:
+            pass
+    return idx
+
+
+def switch_key(target_idx: int | None = None) -> tuple:
+    """Quick key switching: toggles to the next key or the target index."""
+    ks = keys()
+    if not ks:
+        return 0, ""
+    if target_idx is not None:
+        idx = max(0, min(target_idx, len(ks) - 1))
+    else:
+        idx = (active_key_index() + 1) % len(ks)
+    set_active_key_index(idx)
+    return idx, ks[idx]
+
+
+def key() -> str:
+    ks = keys()
+    if not ks:
+        return ""
+    return ks[active_key_index()]
+
+
+def models() -> list:
+    d = _from_dashboard()
+    ms = list(d.get("models") or [])
+    if not ms:
+        ms = list(config.AI_MODELS)
+    return ms if ms else list(config.DEFAULT_TOP_15_MODELS)
+
+
+def active_model() -> str:
+    ms = models()
+    if not ms:
+        return ""
+    if _runtime["active_model"] and _runtime["active_model"] in ms:
+        return _runtime["active_model"]
+    return ms[0]
+
+
+def set_active_model(model_name: str) -> str:
+    ms = models()
+    m_clean = str(model_name or "").strip()
+    if m_clean in ms:
+        _runtime["active_model"] = m_clean
+        f = _file()
+        if f.exists():
+            try:
+                with _lock:
+                    data = json.loads(f.read_text(encoding="utf-8"))
+                    if isinstance(data, dict) and "models" in data:
+                        existing = [str(x) for x in data["models"]]
+                        if m_clean in existing:
+                            existing.remove(m_clean)
+                            existing.insert(0, m_clean)
+                            data["models"] = existing
+                            f.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                            _saved["at"] = None
+            except Exception:
+                pass
+        return m_clean
+    return active_model()
+
+
+def is_limit_error(e: Exception) -> bool:
+    """Detects 429 rate limit, 503 high demand, quota exhaustion, or token limits."""
+    if isinstance(e, AIError):
+        if getattr(e, "wait", None) is not None or getattr(e, "daily", False):
+            return True
+    text = str(e).lower()
+    m = re.search(r"http\s*(\d{3})", text)
+    if m and m.group(1) in ("429", "503"):
+        return True
+    return any(p in text for p in (
+        "429", "503", "quota", "rate limit", "rate_limit", "resource_exhausted",
+        "exhausted", "per day", "perday", "daily", "spikes in demand", "high demand",
+        "overloaded", "too many requests", "token limit", "tokens", "exceeded your current quota"
+    ))
+
+
 def current() -> dict:
     """Provider, models, address and key: what the dashboard saved, or else what .env says."""
     d = _from_dashboard()
     p = str(d.get("provider") or config.AI_PROVIDER or "").strip().lower()
     return {"provider": ALIASES.get(p, p),
-            "models": list(d["models"]) if d.get("provider") else list(config.AI_MODELS),
+            "models": models(),
             "base_url": (str(d.get("base_url") or "") if d.get("provider") else config.AI_BASE_URL).rstrip("/"),
-            "key": str(d["key"]) if d.get("provider") and "key" in d else config.ai_key()}
+            "key": key(),
+            "keys": keys(),
+            "active_key_index": active_key_index(),
+            "active_model": active_model()}
 
 
 def provider() -> str:
     return current()["provider"]
-
-
-def models() -> list:
-    return current()["models"]
-
-
-def key() -> str:
-    return current()["key"]
 
 
 def label() -> str:
@@ -97,25 +360,47 @@ def ready() -> bool:
 
 
 def public() -> dict:
-    """What the settings page may see. The key itself never leaves the server: only whether there is one, and
-    its last four characters so the owner can tell which key it is."""
+    """What the settings page and UI may see."""
     c = current()
-    return {"provider": c["provider"], "models": c["models"], "base_url": c["base_url"], "has_key": bool(c["key"]),
-            "key_hint": c["key"][-4:] if len(c["key"]) >= 12 else "", "ready": ready(), "label": label(),
-            "saved_here": bool(_from_dashboard().get("provider")),
-            "providers": [{"id": k, "label": v[0], "address": v[1], "needs_key": k not in NO_KEY, "key_url": v[3], "example": v[4]}
-                          for k, v in PROVIDERS.items()]}
+    ks = keys()
+    idx = active_key_index()
+    curr_k = ks[idx] if ks else ""
+    return {
+        "provider": c["provider"],
+        "models": c["models"],
+        "active_model": active_model(),
+        "base_url": c["base_url"],
+        "has_key": bool(curr_k),
+        "key_hint": curr_k[-4:] if len(curr_k) >= 12 else "",
+        "ready": ready(),
+        "label": label(),
+        "saved_here": bool(_from_dashboard().get("provider")),
+        "active_key_index": idx,
+        "keys_info": [
+            {
+                "index": i,
+                "hint": k[-4:] if len(k) >= 12 else (k[:4] if k else ""),
+                "full_preview": (k[:7] + "..." + k[-4:]) if len(k) >= 16 else ("Key " + str(i + 1)),
+                "active": i == idx
+            }
+            for i, k in enumerate(ks)
+        ],
+        "top_models": TOP_15_MODELS,
+        "providers": [
+            {"id": k, "label": v[0], "address": v[1], "needs_key": k not in NO_KEY, "key_url": v[3], "example": v[4]}
+            for k, v in PROVIDERS.items()
+        ]
+    }
 
 
-def save(provider_id: str, model_ids, address: str = "", new_key=None) -> dict:
-    """Save the choice made in the dashboard. `new_key` None keeps the key that is already there (the page never
-    has it to send back); an empty string removes it."""
+def save(provider_id: str, model_ids, address: str = "", new_key=None, new_keys=None) -> dict:
+    """Save choice in dashboard with multiple keys and models support."""
     p = ALIASES.get(str(provider_id or "").strip().lower(), str(provider_id or "").strip().lower())
     if p not in PROVIDERS:
         raise ValueError("Choose one of the AI services in the list.")
     if isinstance(model_ids, str):
         model_ids = model_ids.split(",")
-    ms = [str(m).strip()[:120] for m in (model_ids or []) if str(m).strip()][:5]
+    ms = [str(m).strip()[:120] for m in (model_ids or []) if str(m).strip()][:30]
     if not ms:
         raise ValueError("Enter the model to use.")
     if any(not re.fullmatch(r"[\w.\-:/@]+", m) for m in ms):
@@ -125,16 +410,37 @@ def save(provider_id: str, model_ids, address: str = "", new_key=None) -> dict:
         raise ValueError("The address has to start with http:// or https://")
     if p == "custom" and not address:
         raise ValueError("A custom service needs its address, for example http://127.0.0.1:1234/v1")
-    old = current()
-    k = old["key"] if new_key is None and old["provider"] == p else str(new_key or "").strip()[:400]
-    if not k and p not in NO_KEY:
+    
+    old_ks = keys()
+    if new_keys is not None:
+        if isinstance(new_keys, list):
+            ks = [str(x).strip() for x in new_keys if str(x).strip()]
+        else:
+            ks = [k.strip() for k in re.split(r"[\r\n,]+", str(new_keys)) if k.strip()]
+    elif new_key is not None and str(new_key).strip():
+        ks = [k.strip() for k in re.split(r"[\r\n,]+", str(new_key)) if k.strip()]
+    else:
+        ks = old_ks
+    
+    if not ks and p not in NO_KEY:
         raise ValueError("Paste the key for this service.")
+    
+    active_idx = min(active_key_index(), max(0, len(ks) - 1))
+    primary_k = ks[active_idx] if ks else ""
+    
     with _lock:
         f = _file()
         tmp = f.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"provider": p, "models": ms, "base_url": address, "key": k}), encoding="utf-8")
+        tmp.write_text(json.dumps({
+            "provider": p,
+            "models": ms,
+            "base_url": address,
+            "key": primary_k,
+            "keys": ks,
+            "active_key_index": active_idx
+        }, indent=2), encoding="utf-8")
         try:
-            os.chmod(tmp, 0o600)        # the key is only for whoever runs the server
+            os.chmod(tmp, 0o600)
         except OSError:
             pass
         tmp.replace(f)
@@ -181,8 +487,22 @@ def test() -> dict:
     ms = models()
     if not ready():
         raise ValueError("Save a service, a model and a key first.")
-    out, sent, wrote = call(ms[0], 'Answer with a JSON array that holds the single string "ok".', {"type": "ARRAY", "items": {"type": "STRING"}})
-    return {"ok": True, "model": ms[0], "tokens": sent + wrote, "answer": str(out)[:80]}
+    chosen_model = active_model() or ms[0]
+    try:
+        out, sent, wrote = call(chosen_model, 'Answer with a JSON array that holds the single string "ok".', {"type": "ARRAY", "items": {"type": "STRING"}})
+        return {"ok": True, "model": chosen_model, "tokens": sent + wrote, "answer": str(out)[:80], "key_index": active_key_index()}
+    except Exception as e:
+        # If active model failed, try first model that works in list
+        for alt_m in ms:
+            if alt_m == chosen_model:
+                continue
+            try:
+                out, sent, wrote = call(alt_m, 'Answer with a JSON array that holds the single string "ok".', {"type": "ARRAY", "items": {"type": "STRING"}})
+                set_active_model(alt_m)
+                return {"ok": True, "model": alt_m, "tokens": sent + wrote, "answer": str(out)[:80], "key_index": active_key_index()}
+            except Exception:
+                continue
+        raise e
 
 
 class AIError(RuntimeError):
@@ -243,7 +563,10 @@ def asked_wait(r) -> float | None:
 
 
 def _fail(r, model):
-    text = r.text[:300].replace(key() or "\0", "<key>")
+    text = r.text[:300]
+    for k in keys():
+        if k:
+            text = text.replace(k, "<key>")
     limited = r.status_code in (429, 503)
     raise AIError(f"HTTP {r.status_code} {text}", wait=asked_wait(r) if limited else None,
                   daily=limited and bool(re.search(r"PerDay|per day|daily", r.text or "", re.I)))
@@ -324,62 +647,68 @@ def _parse(text):
 
 
 # ---------------------------------------------------------------- one call
-def call(model: str, prompt: str, schema: dict, timeout: float | None = None):
+def call(model: str, prompt: str, schema: dict, timeout: float | None = None, use_key: str | None = None):
     """Ask one model. Returns (the parsed JSON answer, tokens sent, tokens written back).
 
     `timeout` is how long one answer may take. A live stream passes a short one, because a slow
     answer must not stop the recording."""
     how = PROVIDERS[provider()][2]
-    return {"gemini": _gemini, "openai": _openai, "anthropic": _anthropic}[how](model, prompt, schema, timeout)
+    return {"gemini": _gemini, "openai": _openai, "anthropic": _anthropic}[how](model, prompt, schema, timeout, use_key)
 
 
-def see(prompt: str, image: bytes, timeout: float | None = None) -> tuple[str, int, int]:
-    """Ask one model about one picture: (the answer as text, tokens in, tokens out).
-
-    Nothing is broken by a service that cannot look at pictures, or a model that is only text: the answer
-    comes back empty, or says something the caller does not understand, and the caller carries on without
-    it. The picture is a JPEG, passed as base64 inside the ordinary message."""
+def see(prompt: str, image: bytes, timeout: float | None = None, use_key: str | None = None) -> tuple:
+    """Ask one model about one picture: (the answer as text, tokens in, tokens out)."""
     if not ready() or not image or not models():
         return "", 0, 0
-    model = models()[0]
+    k = use_key or key()
+    model_list = models()
+    curr_m = active_model()
+    ordered = ([curr_m] + [m for m in model_list if m != curr_m]) if curr_m in model_list else model_list
     b64 = base64.b64encode(image).decode()
     how = PROVIDERS[provider()][2]
-    if how == "gemini":
-        body = {"contents": [{"role": "user", "parts": [
-            {"text": prompt},
-            {"inline_data": {"mimeType": "image/jpeg", "data": b64}}]}]}
-        r = httpx.post(f"{base_url()}/{_gem(model)}:generateContent", json=body,
-                       headers={"x-goog-api-key": key()}, timeout=timeout or 120)
-        if r.status_code != 200:
-            _fail(r, model)
-        data = r.json()
-        text = "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
-        u = data.get("usageMetadata", {})
-        sent = int(u.get("promptTokenCount") or 0)
-        return text, sent, max(0, int(u.get("totalTokenCount") or 0) - sent)
-    if how == "anthropic":
-        body = {"model": model, "max_tokens": 300, "messages": [{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
-            {"type": "text", "text": prompt}]}]}
-        r = httpx.post(f"{base_url()}/messages", json=body, timeout=timeout or 120,
-                       headers={"x-api-key": key(), "anthropic-version": "2023-06-01"})
-        if r.status_code != 200:
-            _fail(r, model)
-        data = r.json()
-        text = "".join(p.get("text", "") for p in data.get("content") or [] if p.get("type") == "text")
-        u = data.get("usage") or {}
-        return text, int(u.get("input_tokens") or 0), int(u.get("output_tokens") or 0)
-    headers = {"Authorization": f"Bearer {key()}"} if key() else {}
-    body = {"model": model, "stream": False, "messages": [{"role": "user", "content": [
-        {"type": "text", "text": prompt},
-        {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b64}}]}]}
-    r = httpx.post(f"{base_url()}/chat/completions", json=body, headers=headers, timeout=timeout or 120)
-    if r.status_code != 200:
-        _fail(r, model)
-    data = _openai_body(r)
-    text = (data["choices"][0]["message"].get("content") or "")
-    u = data.get("usage") or {}
-    return text, int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
+    for model in ordered:
+        try:
+            if how == "gemini":
+                body = {"contents": [{"role": "user", "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mimeType": "image/jpeg", "data": b64}}]}]}
+                r = httpx.post(f"{base_url()}/{_gem(model)}:generateContent", json=body,
+                               headers={"x-goog-api-key": k}, timeout=timeout or 120)
+                if r.status_code != 200:
+                    _fail(r, model)
+                data = r.json()
+                text = "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
+                u = data.get("usageMetadata", {})
+                sent = int(u.get("promptTokenCount") or 0)
+                return text, sent, max(0, int(u.get("totalTokenCount") or 0) - sent)
+            if how == "anthropic":
+                body = {"model": model, "max_tokens": 300, "messages": [{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
+                    {"type": "text", "text": prompt}]}]}
+                r = httpx.post(f"{base_url()}/messages", json=body, timeout=timeout or 120,
+                               headers={"x-api-key": k, "anthropic-version": "2023-06-01"})
+                if r.status_code != 200:
+                    _fail(r, model)
+                data = r.json()
+                text = "".join(p.get("text", "") for p in data.get("content") or [] if p.get("type") == "text")
+                u = data.get("usage") or {}
+                return text, int(u.get("input_tokens") or 0), int(u.get("output_tokens") or 0)
+            headers = {"Authorization": f"Bearer {k}"} if k else {}
+            body = {"model": model, "stream": False, "messages": [{"role": "user", "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b64}}]}]}
+            r = httpx.post(f"{base_url()}/chat/completions", json=body, headers=headers, timeout=timeout or 120)
+            if r.status_code != 200:
+                _fail(r, model)
+            data = _openai_body(r)
+            text = (data["choices"][0]["message"].get("content") or "")
+            u = data.get("usage") or {}
+            return text, int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
+        except Exception as e:
+            if is_limit_error(e):
+                continue
+            break
+    return "", 0, 0
 
 
 def _gem(model: str) -> str:
@@ -387,9 +716,10 @@ def _gem(model: str) -> str:
     return model.removeprefix("models/")
 
 
-def _gemini(model, prompt, schema, timeout=None):
+def _gemini(model, prompt, schema, timeout=None, use_key=None):
+    k = use_key or key()
     url = f"{base_url()}/{_gem(model)}:generateContent"
-    headers = {"x-goog-api-key": key()}
+    headers = {"x-goog-api-key": k}
     body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "responseSchema": schema}}
     r = httpx.post(url, json=body, headers=headers, timeout=timeout or 120)
@@ -460,8 +790,9 @@ def _from_events(text: str) -> dict:
     return {"choices": [{"message": message}], "usage": usage}
 
 
-def _openai(model, prompt, schema, timeout=None):
-    headers = {"Authorization": f"Bearer {key()}"} if key() else {}
+def _openai(model, prompt, schema, timeout=None, use_key=None):
+    k = use_key or key()
+    headers = {"Authorization": f"Bearer {k}"} if k else {}
     body = {"model": model, "messages": [{"role": "user", "content": _wrapped(prompt, schema)}], "stream": False}
     # Most services accept these two extras; a few models refuse one of them, so they are dropped on a refusal.
     extras = [{"temperature": 0.4, "response_format": {"type": "json_object"}}, {"response_format": {"type": "json_object"}}, {}]
@@ -477,10 +808,11 @@ def _openai(model, prompt, schema, timeout=None):
     return _parse(data["choices"][0]["message"].get("content")), int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
 
 
-def _anthropic(model, prompt, schema, timeout=None):
+def _anthropic(model, prompt, schema, timeout=None, use_key=None):
+    k = use_key or key()
     body = {"model": model, "max_tokens": 8192, "messages": [{"role": "user", "content": _wrapped(prompt, schema)}]}
     r = httpx.post(f"{base_url()}/messages", json=body, timeout=timeout or 180,
-                   headers={"x-api-key": key(), "anthropic-version": "2023-06-01"})
+                   headers={"x-api-key": k, "anthropic-version": "2023-06-01"})
     if r.status_code != 200:
         _fail(r, model)
     data = r.json()

@@ -744,6 +744,19 @@ tr:hover>td{background:#FCFAF8}
 dialog[open]{animation:fadein .16s ease}
 @keyframes fadein{from{opacity:0}}
 
+/* ---------- AI Quick Switcher */
+.ai-quickbar{display:inline-flex;align-items:center;gap:6px;background:var(--muted);border:1px solid var(--line-2);border-radius:10px;padding:2px 4px}
+.ai-qk-key{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 9px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.ai-qk-key:hover{background:var(--brand-soft);border-color:var(--brand)}
+.ai-dot-live{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.2);display:inline-block}
+.ai-hint-tag{font-size:11px;font-family:monospace;background:var(--muted);padding:1px 4px;border-radius:4px;color:var(--dim)}
+.ai-swap-ic{color:var(--brand-deep);font-weight:700;margin-left:2px}
+.ai-qk-mwrap{display:inline-flex;align-items:center;gap:4px}
+.ai-qm-select{height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--brand-ink);font-size:12px;font-weight:600;cursor:pointer;max-width:210px;text-overflow:ellipsis}
+.ai-qm-select:focus{outline:none;border-color:var(--brand)}
+.ai-qm-next{height:32px;padding:0 9px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+@media (max-width:760px){.ai-qm-select{max-width:140px}.ai-quickbar{order:6;margin-top:4px}}
+
 /* ---------- responsive */
 @media (max-width:1100px){.tiles,.tiles.five{grid-template-columns:repeat(2,minmax(0,1fr))}.home-grid,.split{grid-template-columns:1fr}}
 @media (max-width:900px){
@@ -1070,14 +1083,106 @@ const creator = () => S.creators.find(c => c.id === creatorId());
 const jobOf = id => S.jobs.find(j => j.id === id);
 
 /* ============================================================ shell */
+const TOP_15_MODEL_LIST = [
+  {id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite (15 RPM / 500 RPD)"},
+  {id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite (15 RPM / 500 RPD)"},
+  {id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite (10 RPM / 20 RPD)"},
+  {id: "gemini-3-flash", label: "Gemini 3 Flash (5 RPM / 20 RPD)"},
+  {id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (5 RPM / 20 RPD)"},
+  {id: "gemini-3.6-flash", label: "Gemini 3.6 Flash (5 RPM / 20 RPD)"},
+  {id: "gemini-3.8-flash", label: "Gemini 3.8 Flash (5 RPM / 20 RPD)"},
+  {id: "gemma-4-26b-a4b-it", label: "Gemma 4 26B (30 RPM / 14.4K RPD)"},
+  {id: "gemma-4-31b-it", label: "Gemma 4 31B (30 RPM / 14.4K RPD)"},
+  {id: "gemini-4-hydrogen", label: "Gemini 4 Hydrogen (5 RPM / 20 RPD)"},
+  {id: "gemini-3.5-transcribe", label: "Gemini 3.5 Transcribe (3 RPM / 25 RPD)"},
+  {id: "gemini-robotics-er-2-preview", label: "Gemini Robotics ER 2 (5 RPM / 20 RPD)"},
+  {id: "gemini-2.5-flash-tts", label: "Gemini 2.5 Flash TTS (3 RPM / 10 RPD)"},
+  {id: "gemini-3.1-flash-tts", label: "Gemini 3.1 Flash TTS (3 RPM / 10 RPD)"},
+  {id: "gemini-3.8-flash-tts", label: "Gemini 3.8 Flash TTS (3 RPM / 10 RPD)"}
+];
+
+function aiQuickBar() {
+  const k = S.status.ai;
+  if (!k || !k.ready) return "";
+  const curModel = k.model || "gemini-3.1-flash-lite";
+  const keyIdx = k.active_key_index !== undefined ? k.active_key_index : 0;
+  const keyHint = k.active_key_hint || "";
+  const nextKeyIdx = keyIdx === 0 ? 1 : 0;
+  const mList = (k.top_models && k.top_models.length) 
+    ? k.top_models.map(m => ({id: m.id, label: `${m.name || m.id} (${m.rpm} RPM / ${m.rpd} RPD)`}))
+    : TOP_15_MODEL_LIST;
+
+  return `<div class="ai-quickbar" role="group" aria-label="AI Model and Key Switcher">
+    <button type="button" class="btn sm ai-qk-key" data-act="aiswitchkey" title="Active Key: Key ${keyIdx + 1} (${keyHint ? '...' + keyHint : ''}). Click to instantly toggle to Key ${nextKeyIdx + 1}">
+      <span class="ai-dot-live"></span>
+      <span>Key <b>${keyIdx + 1}</b></span>
+      ${keyHint ? `<code class="ai-hint-tag">...${esc(keyHint)}</code>` : ""}
+      <span class="ai-swap-ic">⇄</span>
+    </button>
+    <div class="ai-qk-mwrap">
+      <select class="ai-qm-select" data-act="aiquickselect" title="Active AI Model - Select to switch instantly">
+        ${mList.map(m => `<option value="${esc(m.id)}" ${m.id === curModel ? "selected" : ""}>${esc(m.label)}</option>`).join("")}
+      </select>
+      <button type="button" class="btn sm primary ai-qm-next" data-act="ainextmodel" title="Instant Switch: Step to next top model">
+        ⚡ Next
+      </button>
+    </div>
+  </div>`;
+}
+
 function aiCard() {
   const k = S.status.ai; if (!k) return "";
-  return `<div class="card ai-home"><h2>AI</h2>
+  const curModel = k.model || "gemini-3.1-flash-lite";
+  const keyIdx = k.active_key_index !== undefined ? k.active_key_index : 0;
+  const keyHint = k.active_key_hint || "";
+  const nextKeyIdx = keyIdx === 0 ? 1 : 0;
+  const mList = (k.top_models && k.top_models.length) 
+    ? k.top_models.map(m => ({id: m.id, label: `${m.name || m.id} (${m.rpm} RPM / ${m.rpd} RPD)`}))
+    : TOP_15_MODEL_LIST;
+
+  return `<div class="card ai-home">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h2>AI Engine</h2>
+      <span class="pill ok" style="font-size:11px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;">
+        <span class="rdot on" style="background:#22c55e;width:6px;height:6px;"></span>Failover Ready
+      </span>
+    </div>
     <div class="ai-big">${k.ready ? esc(k.provider || "Ready") : "Not set up"}</div>
-    <p class="ai-sub">${k.ready ? esc(k.model || "") : "Clips are picked by loudness until an AI key is added."}</p>
-    <div class="ai-stats"><div><b>${(k.today_calls || 0).toLocaleString()}</b><span>AI calls today</span></div>
-      <div><b>${fmtK(k.today_tokens)}</b><span>Tokens today</span></div></div>
-    <div class="row">${!k.ready && S.status.user?.is_admin ? `<button class="btn primary" data-act="go" data-v="settings" data-tab="ai">${ic("plus")}Add AI key</button>` : ""}<button class="btn" data-act="go" data-v="usage">View usage ${ic("arrowr")}</button></div></div>`;
+    
+    <div style="background:var(--muted);border-radius:10px;padding:12px;margin:12px 0;display:grid;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:12px;color:var(--dim);">
+          <b style="color:var(--brand-ink);">Active Key:</b> Key ${keyIdx + 1} <code>${keyHint ? '...' + esc(keyHint) : ''}</code>
+        </div>
+        <button type="button" class="btn sm" data-act="aiswitchkey" title="Toggle to Key ${nextKeyIdx + 1}">
+          ⚡ Switch to Key ${nextKeyIdx + 1}
+        </button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:12px;color:var(--dim);">
+          <b style="color:var(--brand-ink);">Active Model:</b>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px;justify-content:flex-end;">
+          <select class="ai-qm-select" data-act="aiquickselect" style="max-width:220px;font-size:12px;">
+            ${mList.map(m => `<option value="${esc(m.id)}" ${m.id === curModel ? "selected" : ""}>${esc(m.label)}</option>`).join("")}
+          </select>
+          <button type="button" class="btn sm primary" data-act="ainextmodel" title="Switch to next ranked model">
+            ⚡ Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-stats">
+      <div><b>${(k.today_calls || 0).toLocaleString()}</b><span>AI calls today</span></div>
+      <div><b>${fmtK(k.today_tokens)}</b><span>Tokens today</span></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      ${!k.ready && S.status.user?.is_admin ? `<button class="btn primary" data-act="go" data-v="settings" data-tab="ai">${ic("plus")}Add AI key</button>` : ""}
+      <button class="btn" data-act="go" data-v="usage">View usage ${ic("arrowr")}</button>
+      <button class="btn ghost" data-act="go" data-v="settings" data-tab="ai">Settings</button>
+    </div>
+  </div>`;
 }
 const PLAT = {
   youtube: {name: "YouTube", bg: "#FF0000", fg: "#fff", hint: "https://www.youtube.com/@name",
@@ -1291,10 +1396,14 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
     act = c.live_job ? `<button class="btn danger" data-act="stoplive" data-j="${esc(c.live_job)}">${ic("stop")}Stop recording</button>`
                      : `<button class="btn primary" data-act="golive"><span class="rdot"></span>${liveOn(c).length ? "Record live stream" : "Start recording"}</button>`;
   }
+  const quick = aiQuickBar();
   if (S.view === "overview" || S.view === "library") {
     const L = S.status.links || {};
-    act = (L.repo ? `<a class="btn" href="${esc(L.repo)}" target="_blank" rel="noopener" title="Star PeakCut on GitHub">${ic("github")}<span>Star<span class="long"> on GitHub</span></span></a>` : "")
+    act = quick
+        + (L.repo ? `<a class="btn" href="${esc(L.repo)}" target="_blank" rel="noopener" title="Star PeakCut on GitHub">${ic("github")}<span>Star<span class="long"> on GitHub</span></span></a>` : "")
         + (L.follow ? `<a class="btn primary" href="${esc(L.follow)}" target="_blank" rel="noopener" title="Follow the maker of PeakCut on Instagram">${ic("instagram")}Follow me</a>` : "");
+  } else if (c) {
+    act = quick + act;
   }
   const me = S.status.user;
   const kk = S.status.ai;
@@ -1784,7 +1893,17 @@ function jobHtml(j) {
         ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="dlall" data-j="${j.id}" title="Download all clips of this video" aria-label="Download all clips of this video">${ic("down")}</button>` : ""}
         <button class="btn sm icon ghost" data-act="deljob" data-j="${j.id}" title="Delete" aria-label="Delete this video and its clips">${ic("trash")}</button>
         <label class="selck" title="Select this video and its clips"><input type="checkbox" data-sel="j:${j.id}" ${sel().has("j:" + j.id) ? "checked" : ""} aria-label="Select this video"></label>`}</div></div>
-    ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>` : ""}
+    ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin:4px 0 8px;">
+        <p class="sub" style="margin:0">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--muted);padding:3px 8px;border-radius:8px;">
+          <span style="font-weight:600;color:var(--brand-ink);">⚡ AI:</span>
+          <span class="pill" style="font-size:11px;padding:1px 6px;">${esc(S.status.ai?.model || "gemini-3.1-flash-lite")}</span>
+          <span class="pill" style="font-size:11px;padding:1px 6px;">Key ${(S.status.ai?.active_key_index ?? 0) + 1} (${esc(S.status.ai?.active_key_hint ? '...' + S.status.ai.active_key_hint : '')})</span>
+          <button type="button" class="btn sm" data-act="aiswitchkey" style="padding:2px 7px;height:24px;font-size:11px;" title="Switch API Key">Switch Key</button>
+          <button type="button" class="btn sm primary" data-act="ainextmodel" style="padding:2px 7px;height:24px;font-size:11px;" title="Switch to Next Top Model">⚡ Next Model</button>
+        </div>
+      </div>` : ""}
     ${j.status === "done" && !j.clips.length ? `<p class="sub">${esc(j.stage)}</p>` : ""}
     ${j.error ? `<div class="err">${esc(j.error)}<button class="rep" data-act="report" data-ctx="${esc("Video failed: " + (j.title || j.source.name || "") + " | " + j.error)}">Report this</button></div>` : ""}${j.ai?.note ? `<p class="sub">${esc(j.ai.note)}</p>` : ""}
     ${j.clips.length ? `<div class="grid">${j.clips.map(c => clipHtml(j, c)).join("")}</div>` : ""}`;
@@ -2072,16 +2191,111 @@ async function drawSettings() {
   try {
     if (tab === "ai") {
       const k = S.ai = await api("/api/ai");
-      body.innerHTML = `<section class="set-sec"><h2>AI</h2><p class="help">PeakCut uses an AI model to pick the moments worth clipping and to write hooks, titles and captions. Use your own key from any of these services. You pay that service directly. Without a key, clips are picked by loudness.</p>
-          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
-          <div class="ai-form">
-            <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
-            <label class="f">Key<input id="ai_key" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="ai_keyhint"></span></label>
-            <label class="f" id="ai_basewrap">Address<input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false"><span class="hint">Where the service answers. Only needed for a custom service.</span></label>
-            <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
-              <datalist id="ai_models"></datalist><span class="hint">A fast, inexpensive model is the right choice. Add a second one after a comma to fall back on.</span></label>
+      body.innerHTML = `<section class="set-sec">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h2>AI Configuration & Fast Switching</h2>
+              <p class="help">PeakCut uses Google Gemini AI to analyze video transcripts, find viral moments, and generate captions. Dual API keys and Top 15 ranked models are pre-loaded for instant switching with zero downtime.</p>
+            </div>
+            <div class="row" style="gap:8px;">
+              <button class="btn sm" data-act="aiswitchkey">⚡ Toggle Active Key</button>
+              <button class="btn sm primary" data-act="aitest">Test AI</button>
+            </div>
           </div>
-          <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save and test</button>${k.ready ? `<button class="btn" data-act="aitest">Test again</button>` : ""}</div></section>`;
+
+          <div class="ai-state" style="margin-top:14px;">
+            ${k.ready ? `<span class="pill ok">${ic("check")}AI Ready</span><span class="sub"><b>Active Model:</b> <code style="color:var(--brand-ink);font-weight:700;">${esc(k.active_model || k.models[0] || "")}</code> · <b>Active Key:</b> Key ${k.active_key_index + 1} (${esc(k.key_hint ? '...' + k.key_hint : '')})</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}
+          </div>
+
+          <!-- Key Management Card -->
+          <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+              <div>
+                <b style="font-size:14px;color:var(--brand-ink);">🔑 API Keys (Instant Failover)</b>
+                <span style="display:block;font-size:12px;color:var(--dim);margin-top:2px;">If Key 1 runs out of quota or tokens, PeakCut automatically switches to Key 2 with zero downtime. You can also click below to manually switch instantly anytime.</span>
+              </div>
+            </div>
+            <div class="row" style="gap:10px;flex-wrap:wrap;">
+              ${(k.keys_info || []).map((ki, i) => `
+                <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid ${ki.active ? 'var(--brand)' : 'var(--line)'};background:${ki.active ? 'rgba(235,94,40,0.06)' : 'transparent'};border-radius:8px;">
+                  <span style="font-weight:600;font-size:13px;">Key ${i + 1}:</span>
+                  <code style="font-size:12px;background:var(--muted);padding:2px 6px;border-radius:4px;">${esc(ki.full_preview)}</code>
+                  ${ki.active ? `<span class="pill ok" style="padding:2px 8px;font-size:11px;">ACTIVE</span>` : `<button class="btn sm ghost" data-act="aiswitchkey" data-idx="${i}" style="padding:4px 8px;font-size:11px;">Switch to this key</button>`}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Active Model Quick Selection -->
+          <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div>
+                <b style="font-size:14px;color:var(--brand-ink);">⚡ Active Model & Automatic Failover</b>
+                <span style="display:block;font-size:12px;color:var(--dim);margin-top:2px;">When a model reaches rate limits (RPM / TPM / 429 / 503), PeakCut instantly cascades to the next best model without sleeping or stopping your live clipping.</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <select id="ai_quick_model_select" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;font-weight:500;">
+                  ${(k.models || []).map(m => `<option value="${esc(m)}" ${m === k.active_model ? "selected" : ""}>${esc(m)}</option>`).join("")}
+                </select>
+                <button class="btn sm primary" data-act="aiswitchmodel">Switch Model</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top 15 Models Table -->
+          <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;">
+            <b style="font-size:14px;color:var(--brand-ink);display:block;margin-bottom:4px;">🏆 Top 15 Ranked Models for Video Clipping</b>
+            <span style="display:block;font-size:12px;color:var(--dim);margin-bottom:14px;">Ranked by daily requests (RPD), requests per minute (RPM), and token window size. Click "Use Model" to instantly make any model active.</span>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead>
+                  <tr style="border-bottom:2px solid var(--line);text-align:left;color:var(--dim);">
+                    <th style="padding:8px 6px;">#</th>
+                    <th style="padding:8px 6px;">Model</th>
+                    <th style="padding:8px 6px;">RPM</th>
+                    <th style="padding:8px 6px;">TPM</th>
+                    <th style="padding:8px 6px;">Daily Limit (RPD)</th>
+                    <th style="padding:8px 6px;">Context Tokens</th>
+                    <th style="padding:8px 6px;">Highlights</th>
+                    <th style="padding:8px 6px;text-align:right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(k.top_models || []).map((m, idx) => {
+                    const isAct = m.id === k.active_model;
+                    return `
+                      <tr style="border-bottom:1px solid var(--line);${isAct ? 'background:rgba(235,94,40,0.05);font-weight:600;' : ''}">
+                        <td style="padding:8px 6px;color:var(--faint);">${idx + 1}</td>
+                        <td style="padding:8px 6px;"><code>${esc(m.id)}</code> ${isAct ? '<span class="pill ok" style="padding:2px 6px;font-size:10px;">ACTIVE</span>' : ''}</td>
+                        <td style="padding:8px 6px;"><span class="pill" style="font-size:11px;">${m.rpm} RPM</span></td>
+                        <td style="padding:8px 6px;">${esc(m.tpm)}</td>
+                        <td style="padding:8px 6px;"><b style="color:var(--brand);">${m.rpd.toLocaleString()}</b> RPD</td>
+                        <td style="padding:8px 6px;">${esc(m.tokens)}</td>
+                        <td style="padding:8px 6px;color:var(--dim);max-width:200px;">${esc(m.desc)}</td>
+                        <td style="padding:8px 6px;text-align:right;">
+                          ${isAct ? `<span style="color:var(--brand);font-size:11px;">In Use</span>` : `<button class="btn sm" data-act="aisetspecificmodel" data-m="${esc(m.id)}" style="padding:3px 8px;font-size:11px;">Use Model</button>`}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Detailed AI Settings Form -->
+          <details style="margin-top:20px;border-top:1px solid var(--line);padding-top:16px;">
+            <summary style="font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;margin-bottom:12px;">⚙️ Advanced Provider & Key Configuration</summary>
+            <div class="ai-form" style="margin-top:12px;">
+              <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
+              <label class="f">API Keys (comma-separated for multi-key instant switching)<input id="ai_key" type="text" autocomplete="off" spellcheck="false" value="${esc((k.keys_info || []).map(x => x.full_preview).join(', '))}"><span class="hint" id="ai_keyhint"></span></label>
+              <label class="f" id="ai_basewrap">Address<input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false"><span class="hint">Where the service answers. Only needed for a custom service.</span></label>
+              <label class="f">Model Order (tried in this order for instant fallback)<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
+                <datalist id="ai_models"></datalist><span class="hint">All models listed are tried sequentially if rate limit or quota errors occur.</span></label>
+            </div>
+            <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save all settings</button></div>
+          </details>
+        </section>`;
       aiHints();
     }
     if (tab === "speech") {
@@ -2322,6 +2536,20 @@ document.addEventListener("change", async e => {
     if (t.id === "o_captions") t.dataset.overridden = "true";
     syncCaptionStyle(t);
   }
+  if (t.dataset.act === "aiquickselect" || t.classList.contains("ai-qm-select")) {
+    const m = t.value;
+    if (!m) return;
+    try {
+      const res = await send("/api/ai/switch-model", {model: m});
+      S.status = await api("/api/status");
+      render();
+      if ($("#sform")) await drawSettings();
+      toast(`Active model switched to ${res.active_model}`, "ok");
+    } catch (err) {
+      toast(err.message, "bad");
+    }
+    return;
+  }
   if (t.id === "ai_provider") { $("#ai_models").innerHTML = ""; if (S.ai && t.value !== S.ai.provider) { $("#ai_model").value = ""; $("#ai_base").value = ""; } return aiHints(); }
   if (t.dataset.sel) {
     const k = t.dataset.sel;
@@ -2356,6 +2584,69 @@ document.addEventListener("click", async e => {
         $("#ai_models").innerHTML = r.models.map(m => `<option value="${esc(m)}">`).join("");
         toast(r.models.length ? `${r.models.length} models found. Click the model box to pick one.` : "The service listed no models. Type the model yourself.", r.models.length ? "ok" : "");
         if (r.models.length) $("#ai_model").focus();
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "aiswitchkey") {
+      b.disabled = true;
+      try {
+        const res = await send("/api/ai/switch-key", {index: d.idx !== undefined ? Number(d.idx) : undefined});
+        S.status = await api("/api/status");
+        if ($("#sform")) await drawSettings();
+        render();
+        toast(`Switched to Key ${res.active_key_index + 1} (${res.key_hint})`, "ok");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "ainextmodel") {
+      b.disabled = true;
+      try {
+        const curM = S.status.ai?.model || "";
+        const topList = (S.status.ai?.models && S.status.ai.models.length) ? S.status.ai.models : [
+          "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite",
+          "gemini-3-flash", "gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.8-flash",
+          "gemma-4-26b-a4b-it", "gemma-4-31b-it", "gemini-4-hydrogen", "gemini-3.5-transcribe",
+          "gemini-robotics-er-2-preview", "gemini-2.5-flash-tts", "gemini-3.1-flash-tts",
+          "gemini-3.8-flash-tts"
+        ];
+        let idx = topList.indexOf(curM);
+        let nextM = topList[(idx + 1) % topList.length];
+        const res = await send("/api/ai/switch-model", {model: nextM});
+        S.status = await api("/api/status");
+        if ($("#sform")) await drawSettings();
+        render();
+        toast(`Active model switched to ${res.active_model}`, "ok");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "aiswitchmodel") {
+      const m = $("#ai_quick_model_select") ? $("#ai_quick_model_select").value : d.m;
+      b.disabled = true;
+      try {
+        const res = await send("/api/ai/switch-model", {model: m});
+        S.status = await api("/api/status");
+        if ($("#sform")) await drawSettings();
+        render();
+        toast(`Active model switched to ${res.active_model}`, "ok");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "aisetspecificmodel") {
+      b.disabled = true;
+      try {
+        const res = await send("/api/ai/switch-model", {model: d.m});
+        S.status = await api("/api/status");
+        if ($("#sform")) await drawSettings();
+        render();
+        toast(`Active model set to ${res.active_model}`, "ok");
+      } catch (err) {
+        toast(err.message, "bad");
       } finally { b.disabled = false; }
       return;
     }

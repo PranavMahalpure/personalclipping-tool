@@ -1369,14 +1369,45 @@ def ai_get(request: Request):
 def ai_put(request: Request, body: dict = Body(...)):
     _admin(request)
     k = body.get("key")
+    ks = body.get("keys")
     try:
         out = ai.save(body.get("provider"), body.get("models"), body.get("base_url") or "",
-                      None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k))
+                      None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k),
+                      new_keys=ks)
+        if body.get("active_key_index") is not None:
+            ai.set_active_key_index(int(body.get("active_key_index")))
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
     usage.forget_all()
     ctx.bump()
-    return out
+    return ai.public()
+
+
+@app.post("/api/ai/switch-key")
+def ai_switch_key(request: Request, body: dict = Body(default={})):
+    _admin(request)
+    idx = body.get("index")
+    if idx is not None:
+        try:
+            idx = int(idx)
+        except (ValueError, TypeError):
+            raise HTTPException(400, "Index must be an integer.")
+    new_idx, new_key = ai.switch_key(idx)
+    usage.clear_brief(ctx.uid())
+    ctx.bump()
+    return {"ok": True, "active_key_index": new_idx, "key_hint": new_key[-4:] if len(new_key) >= 12 else "", "public": ai.public()}
+
+
+@app.post("/api/ai/switch-model")
+def ai_switch_model(request: Request, body: dict = Body(...)):
+    _admin(request)
+    model = body.get("model")
+    if not model:
+        raise HTTPException(400, "Model is required.")
+    active_m = ai.set_active_model(model)
+    usage.clear_brief(ctx.uid())
+    ctx.bump()
+    return {"ok": True, "active_model": active_m, "public": ai.public()}
 
 
 @app.post("/api/ai/models")

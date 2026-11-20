@@ -26,7 +26,7 @@ def main() -> int:
            # nothing outside this machine is contacted: no AI, no email, no Google sign-in
            "PEAKCUT_SMTP_HOST": "", "PEAKCUT_VERIFY_EMAIL": "1",   # the tests cover the confirm-your-email rule
            "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "", "GOOGLE_CLIENT_FILE": "", "PYTHONUNBUFFERED": "1",
-           "PEAKCUT_AI_KEY": "", "PEAKCUT_AI_KEY_FILE": "", "PEAKCUT_AI_MODELS": "",
+           "PEAKCUT_AI_KEY": "", "PEAKCUT_AI_KEYS": "", "PEAKCUT_AI_KEY_FILE": "", "PEAKCUT_AI_MODELS": "",
            "PEAKCUT_UPLOAD_PART_MB": "5", "PEAKCUT_MAX_UPLOAD_MB": "64"}
     log = data / "server.log"
     failed = []
